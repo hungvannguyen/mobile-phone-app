@@ -1,0 +1,16 @@
+{
+  "appId": "com.course.app",
+  "appName": "mobile_phone-app",
+  "webDir": "public/build",
+  "bundledWebRuntime": false,
+  "backgroundColor": "#03050a",
+  "server": {
+    "url": "https://tappable-nondichogamous-spencer.ngrok-free.dev/",
+    "cleartext": true,
+    "allowNavigation": [
+      "tappable-nondichogamous-spencer.ngrok-free.dev",
+      "*.ngrok-free.dev",
+      "*.paypal.com"
+    ]
+  }
+}
