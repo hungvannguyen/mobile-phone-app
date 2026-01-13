@@ -1,6 +1,6 @@
 {
-  "appId": "com.course.app",
-  "appName": "mobile_phone-app",
+  "appId": "com.invidim.app",
+  "appName": "Invidim",
   "webDir": "public/build",
   "bundledWebRuntime": false,
   "backgroundColor": "#03050a",

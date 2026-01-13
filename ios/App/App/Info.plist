@@ -6,10 +6,10 @@
     <array>
         <dict>
             <key>CFBundleURLName</key>
-            <string>com.course.app</string>
+            <string>com.invidim.app</string>
             <key>CFBundleURLSchemes</key>
             <array>
-                <string>com.course.app</string>
+                <string>com.invidim.app</string>
             </array>
         </dict>
     </array>
@@ -18,7 +18,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
 	<key>CFBundleDisplayName</key>
-        <string>mobile_phone-app</string>
+        <string>Invidim</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
