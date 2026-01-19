@@ -20,7 +20,7 @@
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="com.course.app" android:host="payment-success" />
+                <data android:scheme="com.invidim.app" android:host="payment-success" />
             </intent-filter>
         </activity>
 
