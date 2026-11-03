@@ -5,12 +5,12 @@
   "bundledWebRuntime": false,
   "backgroundColor": "#03050a",
   "server": {
-    "url": "https://tappable-nondichogamous-spencer.ngrok-free.dev/",
+    "url": "https://invidim.com",
     "cleartext": true,
     "allowNavigation": [
-      "tappable-nondichogamous-spencer.ngrok-free.dev",
-      "*.ngrok-free.dev",
-      "*.paypal.com"
+      "invidim.com",
+      "*.paypal.com",
+      "*.stripe.com"
     ]
   }
 }
