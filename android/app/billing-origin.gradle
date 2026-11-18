@@ -1,0 +1,96 @@
+import groovy.json.JsonOutput
+import groovy.json.JsonSlurper
+import java.net.URI
+import org.gradle.api.DefaultTask
+import org.gradle.api.GradleException
+import org.gradle.api.file.DirectoryProperty
+import org.gradle.api.file.RegularFileProperty
+import org.gradle.api.provider.Property
+import org.gradle.api.tasks.Input
+import org.gradle.api.tasks.InputFile
+import org.gradle.api.tasks.OutputDirectory
+import org.gradle.api.tasks.PathSensitive
+import org.gradle.api.tasks.PathSensitivity
+import org.gradle.api.tasks.TaskAction
+
+abstract class GenerateInvidimOriginConfig extends DefaultTask {
+    @InputFile @PathSensitive(PathSensitivity.RELATIVE)
+    abstract RegularFileProperty getBaseConfigFile()
+    @Input abstract Property<String> getVariantName()
+    @Input abstract Property<String> getBuildType()
+    @Input abstract Property<String> getApplicationId()
+    @Input abstract Property<String> getProfile()
+    @Input abstract Property<Boolean> getDevelopmentOriginProvided()
+    @Input abstract Property<String> getDevelopmentOrigin()
+    @Input abstract Property<String> getProductionOrigin()
+    @OutputDirectory abstract DirectoryProperty getAssetsDirectory()
+    @OutputDirectory abstract DirectoryProperty getResourcesDirectory()
+
+    private static boolean canonical(String value) {
+        try {
+            def host = new URI(value).host
+            return host != null && host.length() <= 253 &&
+                host.matches('[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\\.[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)*') &&
+                value == 'https://' + host
+        } catch (Exception ignored) { return false }
+    }
+
+    @TaskAction void generate() {
+        // Validate at execution time so configuring release does not block a debug-only invocation.
+        String selectedOrigin
+        if (profile.get() == 'production' && !developmentOriginProvided.get()) {
+            selectedOrigin = productionOrigin.get()
+        } else if (profile.get() == 'development' && buildType.get() == 'debug' && developmentOriginProvided.get()) {
+            selectedOrigin = developmentOrigin.get()
+        } else {
+            throw new GradleException('INVIDIM_ORIGIN_PROFILE_INVALID')
+        }
+        if (!canonical(selectedOrigin)) throw new GradleException('INVIDIM_ORIGIN_INVALID')
+
+        def config
+        try {
+            config = new JsonSlurper().parse(baseConfigFile.get().asFile, 'UTF-8')
+            if (!(config instanceof Map) || !(config.server instanceof Map) || config.appId != applicationId.get()) {
+                throw new IllegalArgumentException()
+            }
+            if (profile.get() == 'production' && config.server.url != productionOrigin.get()) {
+                throw new IllegalArgumentException()
+            }
+            config.server.url = selectedOrigin
+            for (String platform : ['android', 'ios']) {
+                if (config[platform] instanceof Map) config[platform].remove('buildOptions')
+            }
+        } catch (Exception ignored) {
+            throw new GradleException('INVIDIM_STARTUP_CONFIG_INVALID')
+        }
+
+        def asset = assetsDirectory.file('invidim-runtime/capacitor.config.json').get().asFile
+        def resource = resourcesDirectory.file('values/invidim_billing_origin.xml').get().asFile
+        asset.parentFile.mkdirs()
+        resource.parentFile.mkdirs()
+        asset.setText(JsonOutput.prettyPrint(JsonOutput.toJson(config)) + '\n', 'UTF-8')
+        resource.setText('''<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="invidim_google_play_trusted_origin" translatable="false">''' + selectedOrigin + '''</string>
+    <string name="invidim_google_play_origin_profile" translatable="false">''' + profile.get() + '''</string>
+</resources>
+''', 'UTF-8')
+    }
+}
+
+androidComponents.onVariants(androidComponents.selector().all()) { variant ->
+    def taskProvider = tasks.register("generate${variant.name.capitalize()}InvidimOriginConfig", GenerateInvidimOriginConfig) {
+        baseConfigFile.set(rootProject.layout.projectDirectory.file('../capacitor.config.json'))
+        variantName.set(variant.name)
+        buildType.set(variant.buildType)
+        applicationId.set(variant.applicationId)
+        profile.set(providers.gradleProperty('invidimBillingProfile').orElse('production'))
+        developmentOriginProvided.set(providers.gradleProperty('invidimBillingDevelopmentOrigin').map { true }.orElse(false))
+        developmentOrigin.set(providers.gradleProperty('invidimBillingDevelopmentOrigin').orElse(''))
+        productionOrigin.set('https://invidim.com')
+        assetsDirectory.set(layout.buildDirectory.dir("generated/invidimOrigin/${variant.name}/assets"))
+        resourcesDirectory.set(layout.buildDirectory.dir("generated/invidimOrigin/${variant.name}/res"))
+    }
+    variant.sources.assets.addGeneratedSourceDirectory(taskProvider) { it.assetsDirectory }
+    variant.sources.res.addGeneratedSourceDirectory(taskProvider) { it.resourcesDirectory }
+}
